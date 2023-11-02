@@ -1,3 +1,1 @@
-# Brad's Typescript Starter
-
-Barebones Typescript starter.
+# CLD LAR (Cloudinary last access report tool)
