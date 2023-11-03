@@ -5,7 +5,7 @@ const api_key = process.env.API_KEY as string;
 const api_secret = process.env.API_SECRET as string;
 const base_url = process.env.BASE_URL as string;
 
-const from_date = '2023-10-01';
+const from_date = '2023-10-25';
 const to_date = '2023-11-01';
 
 // async function create_access_report() {
@@ -38,12 +38,44 @@ const to_date = '2023-11-01';
 
 // create_access_report().then(console.log).catch(console.error);
 
-async function get_access_report() {
+// async function get_access_reports() {
+//   if (!base_url || !api_key || !api_secret) {
+//     throw new Error('Environment variables are missing.');
+//   }
+
+//   const response = await fetch(base_url, {
+//     method: 'GET',
+//     headers: {
+//       Authorization:
+//         'Basic ' + Buffer.from(api_key + ':' + api_secret).toString('base64'),
+//       'Content-Type': 'application/json',
+//     },
+//   });
+
+//   if (!response.ok) {
+//     const text = await response.text();
+//     console.error('Error response:', text);
+//     throw new Error(`HTTP error! Status: ${response.status}`);
+//   }
+
+//   const data = await response.json();
+//   console.log(data);
+//   return data;
+// }
+
+// get_access_reports();
+
+async function get_access_report_details() {
   if (!base_url || !api_key || !api_secret) {
     throw new Error('Environment variables are missing.');
   }
 
-  const response = await fetch(base_url, {
+  const report_id =
+    '7dde08ddde3c7b2ee9ddd90e25bd25eb736c2e0da31eccaadb9166b00b9e22d9';
+
+  const full_url = `${base_url}/${report_id}`;
+
+  const response = await fetch(full_url, {
     method: 'GET',
     headers: {
       Authorization:
@@ -59,7 +91,8 @@ async function get_access_report() {
   }
 
   const data = await response.json();
+  console.log(data);
   return data;
 }
 
-get_access_report().then(console.log).catch(console.error);
+get_access_report_details();
