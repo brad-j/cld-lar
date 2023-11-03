@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "bin": {
+    "cld-lar": "dist/index.js"
+  },
   "scripts": {
     "start": "ts-node src/index.ts"
   },
@@ -11,9 +14,14 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^20.8.10",
+    "@types/prompt": "^1.1.7",
     "ts-node": "^10.9.1"
   },
   "dependencies": {
-    "dotenv": "^16.3.1"
+    "@inquirer/prompts": "^3.2.0",
+    "cloudinary": "^1.41.0",
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.1",
+    "fast-csv": "^4.3.6"
   }
 }
