@@ -260,9 +260,6 @@ program
         throw new Error('Environment variables are missing.');
       }
 
-      const report_id =
-        'dd354dc4b9c5d597cebe99f8b74eb1912196dc14f5441317fd1b2768d385668e';
-
       const full_url = `${base_url}/resources/last_access_report/${report_id}`;
 
       const response = await fetch(full_url, {
@@ -282,11 +279,14 @@ program
       }
 
       const data = await response.json();
-      console.log(data);
+
+      data.resources.forEach((resource: any) => {
+        console.log(resource);
+      });
       return data;
     }
 
-    get_access_report_resources();
+    get_access_report_resources().catch(console.error);
   });
 
 program.parse(process.argv);
