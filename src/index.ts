@@ -26,6 +26,50 @@ if (fs.existsSync(config_path)) {
   saved_config = JSON.parse(fs.readFileSync(config_path, 'utf8'));
 }
 
+async function prompt_for_credentials() {
+  const use_saved_config = await checkbox({
+    message: 'Do you want to use saved credentials?',
+    choices: [
+      { name: 'Yes', value: true },
+      { name: 'No', value: false },
+    ],
+  });
+
+  if (use_saved_config[0]) {
+    return saved_config;
+  } else {
+    const cloud_name = await input({
+      message: 'Enter your Cloudinary cloud name',
+      default: saved_config?.cloud_name,
+    });
+    const api_key = await input({
+      message: 'Enter your Cloudinary API key',
+      default: saved_config?.api_key,
+    });
+    const api_secret = await input({
+      message: 'Enter your Cloudinary API secret',
+      default: saved_config?.api_secret,
+    });
+    return {
+      cloud_name,
+      api_key,
+      api_secret,
+    };
+  }
+}
+
+function configure_cloudinary(
+  cloud_name?: string,
+  api_key?: string,
+  api_secret?: string
+) {
+  cloudinary.config({
+    cloud_name,
+    api_key,
+    api_secret,
+  });
+}
+
 program
   .command('config')
   .description('Update Cloudinary credentials')
@@ -56,18 +100,11 @@ program
   .command('create-report')
   .description('Create a last access report')
   .action(async () => {
-    const cloud_name = await input({
-      message: 'Enter your Cloudinary cloud name',
-      default: saved_config?.cloud_name,
-    });
-    const api_key = await input({
-      message: 'Enter your Cloudinary API key',
-      default: saved_config?.api_key,
-    });
-    const api_secret = await input({
-      message: 'Enter your Cloudinary API secret',
-      default: saved_config?.api_secret,
-    });
+    const credentials = await prompt_for_credentials();
+    const { cloud_name, api_key, api_secret } = credentials;
+
+    configure_cloudinary(cloud_name, api_key, api_secret);
+
     const from_date = await input({
       message: 'Enter the start date (YYYY-MM-DD)',
     });
@@ -84,12 +121,6 @@ program
     });
 
     console.log('Creating report...');
-
-    cloudinary.config({
-      cloud_name,
-      api_key,
-      api_secret,
-    });
 
     async function create_last_access_report() {
       if (!base_url || !api_key || !api_secret) {
@@ -132,24 +163,10 @@ program
   .description('Get all last access reports')
   .command('get-all-reports')
   .action(async () => {
-    const cloud_name = await input({
-      message: 'Enter your Cloudinary cloud name',
-      default: saved_config?.cloud_name,
-    });
-    const api_key = await input({
-      message: 'Enter your Cloudinary API key',
-      default: saved_config?.api_key,
-    });
-    const api_secret = await input({
-      message: 'Enter your Cloudinary API secret',
-      default: saved_config?.api_secret,
-    });
+    const credentials = await prompt_for_credentials();
+    const { cloud_name, api_key, api_secret } = credentials;
 
-    cloudinary.config({
-      cloud_name,
-      api_key,
-      api_secret,
-    });
+    configure_cloudinary(cloud_name, api_key, api_secret);
 
     async function get_all_access_reports() {
       if (!base_url || !api_key || !api_secret) {
@@ -185,24 +202,11 @@ program
   .description('Get the details of a last access report by ID')
   .command('get-report-details')
   .action(async () => {
-    const cloud_name = await input({
-      message: 'Enter your Cloudinary cloud name',
-      default: saved_config?.cloud_name,
-    });
-    const api_key = await input({
-      message: 'Enter your Cloudinary API key',
-      default: saved_config?.api_key,
-    });
-    const api_secret = await input({
-      message: 'Enter your Cloudinary API secret',
-      default: saved_config?.api_secret,
-    });
+    const credentials = await prompt_for_credentials();
+    const { cloud_name, api_key, api_secret } = credentials;
 
-    cloudinary.config({
-      cloud_name,
-      api_key,
-      api_secret,
-    });
+    configure_cloudinary(cloud_name, api_key, api_secret);
+
     const report_id = await input({
       message: 'Enter your Cloudinary report ID',
     });
@@ -242,24 +246,11 @@ program
   .description('Get all assets in a last access report by ID')
   .command('get-assets-in-report')
   .action(async () => {
-    const cloud_name = await input({
-      message: 'Enter your Cloudinary cloud name',
-      default: saved_config?.cloud_name,
-    });
-    const api_key = await input({
-      message: 'Enter your Cloudinary API key',
-      default: saved_config?.api_key,
-    });
-    const api_secret = await input({
-      message: 'Enter your Cloudinary API secret',
-      default: saved_config?.api_secret,
-    });
+    const credentials = await prompt_for_credentials();
+    const { cloud_name, api_key, api_secret } = credentials;
 
-    cloudinary.config({
-      cloud_name,
-      api_key,
-      api_secret,
-    });
+    configure_cloudinary(cloud_name, api_key, api_secret);
+
     const report_id = await input({
       message: 'Enter your Cloudinary report ID',
     });
