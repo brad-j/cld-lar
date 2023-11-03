@@ -181,68 +181,121 @@ program
     get_all_access_reports().then(console.log).catch(console.error);
   });
 
+program
+  .description('Get the details of a last access report by ID')
+  .command('get-report-details')
+  .action(async () => {
+    const cloud_name = await input({
+      message: 'Enter your Cloudinary cloud name',
+      default: saved_config?.cloud_name,
+    });
+    const api_key = await input({
+      message: 'Enter your Cloudinary API key',
+      default: saved_config?.api_key,
+    });
+    const api_secret = await input({
+      message: 'Enter your Cloudinary API secret',
+      default: saved_config?.api_secret,
+    });
+
+    cloudinary.config({
+      cloud_name,
+      api_key,
+      api_secret,
+    });
+    const report_id = await input({
+      message: 'Enter your Cloudinary report ID',
+    });
+
+    async function get_access_report_details() {
+      if (!base_url || !api_key || !api_secret) {
+        throw new Error('Environment variables are missing.');
+      }
+
+      const full_url = `${base_url}/resources_last_access_reports/${report_id}`;
+
+      const response = await fetch(full_url, {
+        method: 'GET',
+        headers: {
+          Authorization:
+            'Basic ' +
+            Buffer.from(api_key + ':' + api_secret).toString('base64'),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('Error response:', text);
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log(data);
+      return data;
+    }
+
+    get_access_report_details();
+  });
+
+program
+  .description('Get all assets in a last access report by ID')
+  .command('get-assets-in-report')
+  .action(async () => {
+    const cloud_name = await input({
+      message: 'Enter your Cloudinary cloud name',
+      default: saved_config?.cloud_name,
+    });
+    const api_key = await input({
+      message: 'Enter your Cloudinary API key',
+      default: saved_config?.api_key,
+    });
+    const api_secret = await input({
+      message: 'Enter your Cloudinary API secret',
+      default: saved_config?.api_secret,
+    });
+
+    cloudinary.config({
+      cloud_name,
+      api_key,
+      api_secret,
+    });
+    const report_id = await input({
+      message: 'Enter your Cloudinary report ID',
+    });
+
+    async function get_access_report_resources() {
+      if (!base_url || !api_key || !api_secret) {
+        throw new Error('Environment variables are missing.');
+      }
+
+      const report_id =
+        'dd354dc4b9c5d597cebe99f8b74eb1912196dc14f5441317fd1b2768d385668e';
+
+      const full_url = `${base_url}/resources/last_access_report/${report_id}`;
+
+      const response = await fetch(full_url, {
+        method: 'GET',
+        headers: {
+          Authorization:
+            'Basic ' +
+            Buffer.from(api_key + ':' + api_secret).toString('base64'),
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        console.error('Error response:', text);
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log(data);
+      return data;
+    }
+
+    get_access_report_resources();
+  });
+
 program.parse(process.argv);
-
-// async function get_access_report_details() {
-//   if (!base_url || !api_key || !api_secret) {
-//     throw new Error('Environment variables are missing.');
-//   }
-
-//   const report_id =
-//     'dd354dc4b9c5d597cebe99f8b74eb1912196dc14f5441317fd1b2768d385668e';
-
-//   const full_url = `${base_url}/resources_last_access_reports/${report_id}`;
-
-//   const response = await fetch(full_url, {
-//     method: 'GET',
-//     headers: {
-//       Authorization:
-//         'Basic ' + Buffer.from(api_key + ':' + api_secret).toString('base64'),
-//       'Content-Type': 'application/json',
-//     },
-//   });
-
-//   if (!response.ok) {
-//     const text = await response.text();
-//     console.error('Error response:', text);
-//     throw new Error(`HTTP error! Status: ${response.status}`);
-//   }
-
-//   const data = await response.json();
-//   console.log(data);
-//   return data;
-// }
-
-// get_access_report_details();
-
-// async function get_access_report_resources() {
-//   if (!base_url || !api_key || !api_secret) {
-//     throw new Error('Environment variables are missing.');
-//   }
-
-//   const report_id =
-//     'dd354dc4b9c5d597cebe99f8b74eb1912196dc14f5441317fd1b2768d385668e';
-
-//   const full_url = `${base_url}/resources/last_access_report/${report_id}`;
-
-//   const response = await fetch(full_url, {
-//     method: 'GET',
-//     headers: {
-//       Authorization:
-//         'Basic ' + Buffer.from(api_key + ':' + api_secret).toString('base64'),
-//       'Content-Type': 'application/json',
-//     },
-//   });
-
-//   if (!response.ok) {
-//     const text = await response.text();
-//     console.error('Error response:', text);
-//     throw new Error(`HTTP error! Status: ${response.status}`);
-//   }
-
-//   const data = await response.json();
-//   console.log(data);
-//   return data;
-// }
-
-// get_access_report_resources();
