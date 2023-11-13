@@ -1,22 +1,30 @@
-import dotenv from 'dotenv';
-dotenv.config();
-
 import { program } from 'commander';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as csv from 'fast-csv';
-import { v2 as cloudinary } from 'cloudinary';
-import { input, checkbox } from '@inquirer/prompts';
+import moment from 'moment';
+import { input, checkbox, select } from '@inquirer/prompts';
 
-const api_key = process.env.API_KEY as string;
-const api_secret = process.env.API_SECRET as string;
-const base_url = process.env.BASE_URL as string;
+const base_url = 'https://api.cloudinary.com/v1_1/';
 
 interface CloudinaryConfig {
   cloud_name?: string;
   api_key?: string;
   api_secret?: string;
+}
+
+interface RequestBody {
+  max_results: number;
+  next_cursor?: string;
+}
+
+interface LastAccessReportRequestBody {
+  from_date: string;
+  to_date: string;
+  resource_type?: string | string[];
+  sort_by?: string;
+  direction?: string;
 }
 
 const config_path = path.join(os.homedir(), '.cld_lar_config.json');
@@ -27,7 +35,7 @@ if (fs.existsSync(config_path)) {
 }
 
 async function prompt_for_credentials() {
-  const use_saved_config = await checkbox({
+  const use_saved_config = await select({
     message: 'Do you want to use saved credentials?',
     choices: [
       { name: 'Yes', value: true },
@@ -35,7 +43,7 @@ async function prompt_for_credentials() {
     ],
   });
 
-  if (use_saved_config[0]) {
+  if (use_saved_config === true) {
     return saved_config;
   } else {
     const cloud_name = await input({
@@ -50,24 +58,16 @@ async function prompt_for_credentials() {
       message: 'Enter your Cloudinary API secret',
       default: saved_config?.api_secret,
     });
-    return {
+
+    const new_config = {
       cloud_name,
       api_key,
       api_secret,
     };
-  }
-}
+    fs.writeFileSync(config_path, JSON.stringify(new_config));
 
-function configure_cloudinary(
-  cloud_name?: string,
-  api_key?: string,
-  api_secret?: string
-) {
-  cloudinary.config({
-    cloud_name,
-    api_key,
-    api_secret,
-  });
+    return new_config;
+  }
 }
 
 program
@@ -103,7 +103,15 @@ program
     const credentials = await prompt_for_credentials();
     const { cloud_name, api_key, api_secret } = credentials;
 
-    configure_cloudinary(cloud_name, api_key, api_secret);
+    const resource_type = await select({
+      message: 'Select resource type (Only choose one)',
+      choices: [
+        { name: 'all', value: '' },
+        { name: 'image', value: 'image' },
+        { name: 'video', value: 'video' },
+        { name: 'raw', value: 'raw' },
+      ],
+    });
 
     const from_date = await input({
       message: 'Enter the start date (YYYY-MM-DD)',
@@ -111,40 +119,41 @@ program
     const to_date = await input({
       message: 'Enter the end date (YYYY-MM-DD)',
     });
-    const resource_type = await checkbox({
-      message: 'Select resource types (Default all)',
-      choices: [
-        { name: 'image', value: 'image' },
-        { name: 'video', value: 'video' },
-        { name: 'raw', value: 'raw' },
-      ],
-    });
 
     console.log('Creating report...');
 
     async function create_last_access_report() {
-      if (!base_url || !api_key || !api_secret) {
-        throw new Error('Environment variables are missing.');
-      }
+      const full_url = `${base_url}${cloud_name}/resources_last_access_reports`;
 
-      const full_url = `${base_url}/resources_last_access_reports`;
+      let request_body: LastAccessReportRequestBody = {
+        from_date: from_date,
+        to_date: to_date,
+        resource_type: resource_type,
+        sort_by: 'accessed_at',
+        direction: 'desc',
+      };
+
+      console.log('Full URL:', full_url);
+      console.log(
+        'Authorization Header:',
+        `Basic ${Buffer.from(api_key + ':' + api_secret).toString('base64')}`
+      );
+
+      console.log('Request Body:', request_body);
 
       const response = await fetch(full_url, {
         method: 'POST',
         headers: {
-          Authorization:
-            'Basic ' +
-            Buffer.from(api_key + ':' + api_secret).toString('base64'),
+          Authorization: `Basic ${Buffer.from(
+            api_key + ':' + api_secret
+          ).toString('base64')}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          from_date: from_date,
-          to_date: to_date,
-          if(resource_type: string | string[]) {
-            resource_type: resource_type;
-          },
-        }),
+        body: JSON.stringify(request_body),
       });
+
+      console.log('Response Status:', response.status);
+      console.log('Response Status Text:', response.statusText);
 
       if (!response.ok) {
         const text = await response.text();
@@ -166,13 +175,7 @@ program
     const credentials = await prompt_for_credentials();
     const { cloud_name, api_key, api_secret } = credentials;
 
-    configure_cloudinary(cloud_name, api_key, api_secret);
-
     async function get_all_access_reports() {
-      if (!base_url || !api_key || !api_secret) {
-        throw new Error('Environment variables are missing.');
-      }
-
       const full_url = `${base_url}/resources_last_access_reports`;
 
       const response = await fetch(full_url, {
@@ -205,17 +208,11 @@ program
     const credentials = await prompt_for_credentials();
     const { cloud_name, api_key, api_secret } = credentials;
 
-    configure_cloudinary(cloud_name, api_key, api_secret);
-
     const report_id = await input({
       message: 'Enter your Cloudinary report ID',
     });
 
     async function get_access_report_details() {
-      if (!base_url || !api_key || !api_secret) {
-        throw new Error('Environment variables are missing.');
-      }
-
       const full_url = `${base_url}/resources_last_access_reports/${report_id}`;
 
       const response = await fetch(full_url, {
@@ -249,18 +246,37 @@ program
     const credentials = await prompt_for_credentials();
     const { cloud_name, api_key, api_secret } = credentials;
 
-    configure_cloudinary(cloud_name, api_key, api_secret);
+    const output_directory = await input({
+      message: 'Enter the path to save the CSV file',
+      default: '.',
+    });
+    const output_filename = await input({
+      message: 'Enter the filename for the CSV file',
+      default: 'last-access-report.csv',
+    });
 
     const report_id = await input({
       message: 'Enter your Cloudinary report ID',
     });
 
-    async function get_access_report_resources() {
-      if (!base_url || !api_key || !api_secret) {
-        throw new Error('Environment variables are missing.');
-      }
+    const full_output_path = path.join(output_directory, output_filename);
+    console.log(`Saving output to: ${full_output_path}`);
 
+    const csvStream = csv.format({ headers: true });
+    const writableStream = fs.createWriteStream(full_output_path);
+
+    csvStream.pipe(writableStream);
+
+    async function get_access_report_resources(next_cursor?: string) {
       const full_url = `${base_url}/resources/last_access_report/${report_id}`;
+
+      const body: RequestBody = {
+        max_results: 500,
+      };
+
+      if (next_cursor) {
+        body['next_cursor'] = next_cursor;
+      }
 
       const response = await fetch(full_url, {
         method: 'GET',
@@ -270,6 +286,10 @@ program
             Buffer.from(api_key + ':' + api_secret).toString('base64'),
           'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          max_results: 500,
+          next_cursor: null,
+        }),
       });
 
       if (!response.ok) {
@@ -281,8 +301,21 @@ program
       const data = await response.json();
 
       data.resources.forEach((resource: any) => {
-        console.log(resource);
+        const formatted_date = moment(resource.last_access).format(
+          'MM-DD-YYYY'
+        );
+        const data = {
+          last_access_date: formatted_date,
+          public_id: resource.public_id,
+          secure_url: resource.secure_url,
+        };
+        csvStream.write(data);
       });
+
+      if (data.next_cursor) {
+        await get_access_report_resources(data.next_cursor);
+      }
+
       return data;
     }
 
