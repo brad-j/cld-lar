@@ -77,8 +77,15 @@ async function prompt_for_credentials() {
 }
 
 program
+  .name('cld')
+  .usage('<command>')
+  .description(
+    'CLI tool for Cloudinary operations (Currently only last access reports)'
+  );
+
+program
   .command('config')
-  .description('Update Cloudinary credentials')
+  .description('Create/Update Cloudinary credentials')
   .action(async () => {
     const cloud_name_answer = await input({
       message: 'Enter your Cloudinary cloud name',
@@ -151,9 +158,16 @@ program
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          console.error('Unauthorized: Check your API key and secret.');
+        } else if (response.status === 404) {
+          console.error('Not Found: The requested resource does not exist.');
+        } else {
+          console.error(`HTTP error! Status: ${response.status}`);
+        }
         const text = await response.text();
         console.error('Error response:', text);
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        return;
       }
 
       const data = await response.json();
@@ -164,8 +178,8 @@ program
   });
 
 program
-  .description('Get all last access reports')
   .command('get-all-reports')
+  .description('Get all last access reports')
   .action(async () => {
     console.log('Getting all reports...');
     const credentials = await prompt_for_credentials();
@@ -185,9 +199,16 @@ program
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          console.error('Unauthorized: Check your API key and secret.');
+        } else if (response.status === 404) {
+          console.error('Not Found: The requested resource does not exist.');
+        } else {
+          console.error(`HTTP error! Status: ${response.status}`);
+        }
         const text = await response.text();
         console.error('Error response:', text);
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        return;
       }
 
       const data = await response.json();
@@ -198,8 +219,8 @@ program
   });
 
 program
-  .description('Get the details of a last access report by ID')
   .command('get-report-details')
+  .description('Get the details of a last access report by ID')
   .action(async () => {
     const credentials = await prompt_for_credentials();
     const { cloud_name, api_key, api_secret } = credentials;
@@ -222,9 +243,16 @@ program
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          console.error('Unauthorized: Check your API key and secret.');
+        } else if (response.status === 404) {
+          console.error('Not Found: The requested resource does not exist.');
+        } else {
+          console.error(`HTTP error! Status: ${response.status}`);
+        }
         const text = await response.text();
         console.error('Error response:', text);
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        return;
       }
 
       const data = await response.json();
@@ -236,8 +264,8 @@ program
   });
 
 program
-  .description('Get all assets in a last access report by ID')
   .command('get-assets-in-report')
+  .description('Get all assets in a last access report by ID')
   .action(async () => {
     const credentials = await prompt_for_credentials();
     const { cloud_name, api_key, api_secret } = credentials;
@@ -283,9 +311,16 @@ program
       });
 
       if (!response.ok) {
+        if (response.status === 401) {
+          console.error('Unauthorized: Check your API key and secret.');
+        } else if (response.status === 404) {
+          console.error('Not Found: The requested resource does not exist.');
+        } else {
+          console.error(`HTTP error! Status: ${response.status}`);
+        }
         const text = await response.text();
         console.error('Error response:', text);
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        return;
       }
 
       const data = await response.json();
@@ -294,12 +329,10 @@ program
       if (data.next_cursor) {
         await get_access_report_resources(data.next_cursor, allResources);
       } else {
-        // Sort resources in descending order based on last_access_date
         allResources.sort((a, b) =>
           moment(b.last_access).diff(moment(a.last_access))
         );
 
-        // Write sorted data to CSV
         allResources.forEach(resource => {
           const formatted_date = moment(resource.last_access).format(
             'MM-DD-YYYY'

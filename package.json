@@ -1,16 +1,21 @@
 {
-  "name": "cld-lar",
+  "name": "@brad/cld",
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
   "bin": {
-    "cld-lar": "dist/index.js"
+    "cld": "dist/index.js"
   },
   "scripts": {
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/index.ts",
+    "build": "tsc",
+    "prepublishOnly": "tsc"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "cloudinary",
+    "cld"
+  ],
+  "author": "Brad Johnson",
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^20.8.10",
