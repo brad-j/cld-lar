@@ -27,6 +27,12 @@ interface LastAccessReportRequestBody {
   direction?: string;
 }
 
+interface Resource {
+  last_access: string;
+  public_id: string;
+  secure_url: string;
+}
+
 const config_path = path.join(os.homedir(), '.cld_lar_config.json');
 
 let saved_config: CloudinaryConfig;
@@ -133,14 +139,6 @@ program
         direction: 'desc',
       };
 
-      console.log('Full URL:', full_url);
-      console.log(
-        'Authorization Header:',
-        `Basic ${Buffer.from(api_key + ':' + api_secret).toString('base64')}`
-      );
-
-      console.log('Request Body:', request_body);
-
       const response = await fetch(full_url, {
         method: 'POST',
         headers: {
@@ -151,9 +149,6 @@ program
         },
         body: JSON.stringify(request_body),
       });
-
-      console.log('Response Status:', response.status);
-      console.log('Response Status Text:', response.statusText);
 
       if (!response.ok) {
         const text = await response.text();
@@ -172,18 +167,19 @@ program
   .description('Get all last access reports')
   .command('get-all-reports')
   .action(async () => {
+    console.log('Getting all reports...');
     const credentials = await prompt_for_credentials();
     const { cloud_name, api_key, api_secret } = credentials;
 
     async function get_all_access_reports() {
-      const full_url = `${base_url}/resources_last_access_reports`;
+      const full_url = `${base_url}${cloud_name}/resources_last_access_reports`;
 
       const response = await fetch(full_url, {
         method: 'GET',
         headers: {
-          Authorization:
-            'Basic ' +
-            Buffer.from(api_key + ':' + api_secret).toString('base64'),
+          Authorization: `Basic ${Buffer.from(
+            api_key + ':' + api_secret
+          ).toString('base64')}`,
           'Content-Type': 'application/json',
         },
       });
@@ -213,14 +209,14 @@ program
     });
 
     async function get_access_report_details() {
-      const full_url = `${base_url}/resources_last_access_reports/${report_id}`;
+      const full_url = `${base_url}${cloud_name}/resources_last_access_reports/${report_id}`;
 
       const response = await fetch(full_url, {
         method: 'GET',
         headers: {
-          Authorization:
-            'Basic ' +
-            Buffer.from(api_key + ':' + api_secret).toString('base64'),
+          Authorization: `Basic ${Buffer.from(
+            api_key + ':' + api_secret
+          ).toString('base64')}`,
           'Content-Type': 'application/json',
         },
       });
@@ -246,6 +242,10 @@ program
     const credentials = await prompt_for_credentials();
     const { cloud_name, api_key, api_secret } = credentials;
 
+    const report_id = await input({
+      message: 'Enter your Cloudinary report ID',
+    });
+
     const output_directory = await input({
       message: 'Enter the path to save the CSV file',
       default: '.',
@@ -253,10 +253,6 @@ program
     const output_filename = await input({
       message: 'Enter the filename for the CSV file',
       default: 'last-access-report.csv',
-    });
-
-    const report_id = await input({
-      message: 'Enter your Cloudinary report ID',
     });
 
     const full_output_path = path.join(output_directory, output_filename);
@@ -267,29 +263,23 @@ program
 
     csvStream.pipe(writableStream);
 
-    async function get_access_report_resources(next_cursor?: string) {
-      const full_url = `${base_url}/resources/last_access_report/${report_id}`;
-
-      const body: RequestBody = {
-        max_results: 500,
-      };
-
+    async function get_access_report_resources(
+      next_cursor?: string,
+      allResources: Resource[] = []
+    ): Promise<void> {
+      let full_url = `${base_url}${cloud_name}/resources/last_access_report/${report_id}?max_results=500`;
       if (next_cursor) {
-        body['next_cursor'] = next_cursor;
+        full_url += `&next_cursor=${encodeURIComponent(next_cursor)}`;
       }
 
       const response = await fetch(full_url, {
         method: 'GET',
         headers: {
-          Authorization:
-            'Basic ' +
-            Buffer.from(api_key + ':' + api_secret).toString('base64'),
+          Authorization: `Basic ${Buffer.from(
+            api_key + ':' + api_secret
+          ).toString('base64')}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          max_results: 500,
-          next_cursor: null,
-        }),
       });
 
       if (!response.ok) {
@@ -299,24 +289,31 @@ program
       }
 
       const data = await response.json();
-
-      data.resources.forEach((resource: any) => {
-        const formatted_date = moment(resource.last_access).format(
-          'MM-DD-YYYY'
-        );
-        const data = {
-          last_access_date: formatted_date,
-          public_id: resource.public_id,
-          secure_url: resource.secure_url,
-        };
-        csvStream.write(data);
-      });
+      allResources.push(...data.resources);
 
       if (data.next_cursor) {
-        await get_access_report_resources(data.next_cursor);
-      }
+        await get_access_report_resources(data.next_cursor, allResources);
+      } else {
+        // Sort resources in descending order based on last_access_date
+        allResources.sort((a, b) =>
+          moment(b.last_access).diff(moment(a.last_access))
+        );
 
-      return data;
+        // Write sorted data to CSV
+        allResources.forEach(resource => {
+          const formatted_date = moment(resource.last_access).format(
+            'MM-DD-YYYY'
+          );
+          const csvData = {
+            last_access_date: formatted_date,
+            public_id: resource.public_id,
+            secure_url: resource.secure_url,
+          };
+          csvStream.write(csvData);
+        });
+
+        csvStream.end();
+      }
     }
 
     get_access_report_resources().catch(console.error);
