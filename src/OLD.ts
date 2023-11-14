@@ -9,9 +9,9 @@ import { input, checkbox, select } from '@inquirer/prompts';
 const base_url = 'https://api.cloudinary.com/v1_1/';
 
 interface CloudinaryConfig {
-  cloud_name?: string;
-  api_key?: string;
-  api_secret?: string;
+  cloud_name: string;
+  api_key: string;
+  api_secret: string;
 }
 
 interface RequestBody {
@@ -35,12 +35,22 @@ interface Resource {
 
 const config_path = path.join(os.homedir(), '.cld_lar_config.json');
 
+let global_credentials: CloudinaryConfig | undefined;
+
 let saved_config: CloudinaryConfig;
+
 if (fs.existsSync(config_path)) {
-  saved_config = JSON.parse(fs.readFileSync(config_path, 'utf8'));
+  const saved_config = JSON.parse(
+    fs.readFileSync(config_path, 'utf8')
+  ) as CloudinaryConfig;
+  global_credentials = saved_config;
 }
 
 async function prompt_for_credentials() {
+  if (global_credentials) {
+    return global_credentials;
+  }
+
   const use_saved_config = await select({
     message: 'Do you want to use saved credentials?',
     choices: [
@@ -50,6 +60,7 @@ async function prompt_for_credentials() {
   });
 
   if (use_saved_config === true) {
+    global_credentials = saved_config;
     return saved_config;
   } else {
     const cloud_name = await input({
@@ -71,6 +82,7 @@ async function prompt_for_credentials() {
       api_secret,
     };
     fs.writeFileSync(config_path, JSON.stringify(new_config));
+    global_credentials = new_config;
 
     return new_config;
   }
@@ -113,8 +125,19 @@ program
   .command('create-report')
   .description('Create a last access report')
   .action(async () => {
-    const credentials = await prompt_for_credentials();
-    const { cloud_name, api_key, api_secret } = credentials;
+    if (!global_credentials) {
+      await prompt_for_credentials();
+    }
+
+    let credentials;
+
+    if (global_credentials) {
+      credentials = global_credentials;
+    } else {
+      credentials = await prompt_for_credentials();
+      global_credentials = credentials;
+    }
+    const { cloud_name, api_key, api_secret } = global_credentials;
 
     const resource_type = await select({
       message: 'Select resource type (Only choose one)',
@@ -182,8 +205,23 @@ program
   .description('Get all last access reports')
   .action(async () => {
     console.log('Getting all reports...');
-    const credentials = await prompt_for_credentials();
-    const { cloud_name, api_key, api_secret } = credentials;
+
+    if (!global_credentials) {
+      console.log('Using global credentials:', global_credentials);
+
+      await prompt_for_credentials();
+    }
+
+    let credentials;
+
+    if (global_credentials) {
+      credentials = global_credentials;
+    } else {
+      credentials = await prompt_for_credentials();
+      global_credentials = credentials;
+    }
+
+    const { cloud_name, api_key, api_secret } = global_credentials;
 
     async function get_all_access_reports() {
       const full_url = `${base_url}${cloud_name}/resources_last_access_reports`;
@@ -222,7 +260,19 @@ program
   .command('get-report-details')
   .description('Get the details of a last access report by ID')
   .action(async () => {
-    const credentials = await prompt_for_credentials();
+    if (!global_credentials) {
+      await prompt_for_credentials();
+    }
+
+    let credentials;
+
+    if (global_credentials) {
+      credentials = global_credentials;
+    } else {
+      credentials = await prompt_for_credentials();
+      global_credentials = credentials;
+    }
+
     const { cloud_name, api_key, api_secret } = credentials;
 
     const report_id = await input({
@@ -267,7 +317,19 @@ program
   .command('get-assets-in-report')
   .description('Get all assets in a last access report by ID')
   .action(async () => {
-    const credentials = await prompt_for_credentials();
+    if (!global_credentials) {
+      await prompt_for_credentials();
+    }
+
+    let credentials;
+
+    if (global_credentials) {
+      credentials = global_credentials;
+    } else {
+      credentials = await prompt_for_credentials();
+      global_credentials = credentials;
+    }
+
     const { cloud_name, api_key, api_secret } = credentials;
 
     const report_id = await input({
