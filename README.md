@@ -67,6 +67,11 @@ Get all assets in a last access report by ID and export them to a CSV file.
 cld get-assets-in-report
 ```
 
+TODO
+
+- [ ] Separate into multiple files. (Big Tas)
+- [ ] Graceful exit with ctrl+c
+
 ## Contributing
 
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
