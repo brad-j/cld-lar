@@ -1,7 +1,7 @@
 {
   "name": "@b-rad/cld",
-  "version": "0.0.1",
-  "description": "",
+  "version": "0.0.2",
+  "description": "CLI for Cloudinary.",
   "main": "index.js",
   "bin": {
     "cld": "dist/index.js"

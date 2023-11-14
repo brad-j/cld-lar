@@ -13,7 +13,7 @@ _This tool is not officially supported by Cloudinary._
 To install the CLI, run the following command:
 
 ```bash
-pnpm install cloudinary-last-action-reports-cli
+pnpm install @b-rad/cld -g
 ```
 
 (Or npm, yarn, etc)
