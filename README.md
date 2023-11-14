@@ -1,8 +1,12 @@
 # Cloudinary Last Action Reports CLI
 
+### **WARNING:** This tool is very alpha, expect breaking changes. Use at your own risk!
+
 ## Description
 
 Cloudinary Last Action Reports CLI is a tool designed for Cloudinary users to manage and retrieve last access reports. This tool allows you to create new reports, fetch detailed information on existing reports, and export assets from the report to CSV.
+
+_This tool is not officially supported by Cloudinary._
 
 ## Installation
 
